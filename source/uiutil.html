@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='UIUtil'>/**
+</span> * @class  	UIUtil
+ * @author  Flavio De Stefano &lt;flavio.destefano@caffeinalab.com&gt;
+ */
+
+
+<span id='UIUtil-method-populateListViewFromCollection'>/**
+</span> * @method populateListViewFromCollection
+ * Parse an array or a Backbone.Collection and populate a ListView with this values.
+ *
+ * @param {Object} 	C   					Array or Backbone.Collection
+ * @param {Object} 	opt 					Options
+ * @param {Function} opt.datasetCb		You must provide a callback to fill the ListItem, like this:
+ *
+ * ```
+ * return {
+ *	   properties: {
+ *	      height: 52,
+ *			itemId: el.id,
+ *			searchableText: el.get(&#39;city&#39;)
+ *		},
+ *		title: { text: el.get(&#39;title&#39;) },
+ *		address: { text: el.get(&#39;address&#39;)+&#39;, &#39;+el.get(&#39;city&#39;) }
+ *	}
+ * ```
+ *
+ * @param {Object}	opt.groupBy 		See `_.groupBy`
+ * @param {Function} opt.headerViewCb	A callback to generate the headerView for the ListView.
+ * @param {Boolean}	opt.sectionIndex 	If `true`, provide the **alphabet on the right** functionality.
+ * @param {Ti.UI.ListView} 	[$ui] The ListView to populate.
+ * @return {Array}
+ */
+exports.populateListViewFromCollection = function(C, opt, $ui) {
+	var sec = [];
+
+	if (opt.groupBy != null) {
+
+		var array = (C instanceof Backbone.Collection) ? C.groupBy(opt.groupBy) : _.groupBy(C, opt.groupBy);
+		sec = _.map(array, function(els, key) {
+			return Ti.UI.createListSection(_.extend({
+				items: _.map(els, opt.datasetCb),
+			}, _.isFunction(opt.headerViewCb) ? { headerView: opt.headerViewCb(key) } : { headerTitle: key }));
+		});
+
+		if ($ui != null &amp;&amp; opt.sectionIndex === true) {
+			$ui.sectionIndexTitles = _.map(_.keys(array), function(u, k) { return { title: u, index: k }; });
+		}
+
+	} else {
+		sec = [ Ti.UI.createListSection({
+			items: (C instanceof Backbone.Collection) ? C.map(opt.datasetCb) : _.map(C, opt.datasetCb)
+		}) ];
+	}
+
+	if ($ui != null) $ui.sections = sec;
+	return sec;
+};
+
+</pre>
+</body>
+</html>

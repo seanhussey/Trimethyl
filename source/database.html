@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='Cache-Database'>/**
+</span> * @class  	Cache.Database
+ * @author  Flavio De Stefano &lt;flavio.destefano@caffeinalab.com&gt;
+ */
+
+
+var SQLite = require(&#39;T/sqlite&#39;);
+var Util = require(&#39;T/util&#39;);
+
+<span id='Cache-Database-method-get'>/**
+</span> * @method get
+ * Get an entry
+ * @param  {String} hash [description]
+ * @return {Object}
+ */
+exports.get = function(hash) {
+	var row = DB.row(&#39;SELECT expire, value, info FROM cache WHERE hash = ? LIMIT 1&#39;, hash);
+	if (row === null) return null;
+
+	var expire = parseInt(row.expire, 10);
+	if (expire !== -1 &amp;&amp; Util.now() &gt; expire) return null;
+
+	return {
+		expire: expire,
+		value: row.value,
+		info: Util.parseJSON(row.info)
+	};
+};
+
+<span id='Cache-Database-method-set'>/**
+</span> * @method set
+ * Set a new entry
+ * @param {String} 	hash
+ * @param {Mixed} 	value
+ * @param {Number} 	ttl
+ * @param {Object} 	info
+ */
+exports.set = function(hash, value, ttl, info) {
+	DB.execute(&#39;INSERT OR REPLACE INTO cache (hash, expire, value, info) VALUES (?, ?, ?, ?)&#39;,
+	hash, ttl != null ? Util.fromNow(ttl) : -1, value, JSON.stringify(info));
+};
+
+
+<span id='Cache-Database-method-remove'>/**
+</span> * @method remove
+ * Remove an entry
+ * @param  {String} 	hash
+ */
+exports.remove = function(hash) {
+	DB.execute(&#39;DELETE FROM cache WHERE hash = ?&#39;, hash);
+};
+
+<span id='Cache-Database-method-purge'>/**
+</span> * @method purge
+ * Prune all
+ */
+exports.purge = function() {
+	return DB.execute(&#39;DELETE FROM cache WHERE 1&#39;);
+};
+
+<span id='Cache-Database-method-getSize'>/**
+</span> * @method getSize
+ * @return {Number}
+ */
+exports.getSize = function() {
+	return DB.db.file ? DB.db.file.size : 0;
+};
+
+
+/*
+Init
+*/
+
+var DB = new SQLite(&#39;app&#39;);
+DB.execute(&#39;CREATE TABLE IF NOT EXISTS cache (hash TEXT PRIMARY KEY, expire INTEGER, value TEXT, info TEXT)&#39;);
+</pre>
+</body>
+</html>

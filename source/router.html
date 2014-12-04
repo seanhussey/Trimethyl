@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='Router'>/**
+</span> * @class  	Router
+ * @author  Flavio De Stefano &lt;flavio.destefano@caffeinalab.com&gt;
+ */
+
+
+var Util = require(&#39;T/util&#39;);
+
+var routes = []; // storage for all routes
+
+<span id='Router-method-on'>/**
+</span> * @method on
+ * Register a route with defined callbacks
+ *
+ * @param  {String|RegExp|Function}   	key 			The route name.
+ * It can be:
+ *
+ * * `String`: (exact route match)
+ * * `RegExp`: is evaluated with the argument and the matches are passed to the callback
+ * * `Function`: must return a `non-undefined` value to be executed. That value is passed to the callback
+ *
+ * @param  {Function}	callback  		The callback
+ */
+exports.on = function(key, callback) {
+	routes.push({
+		key: key,
+		callback: callback
+	});
+};
+
+<span id='Router-method-dispatch'>/**
+</span> * @method dispatch
+ * Dispatch the router
+ *
+ * This function call the defined function with `Router.on`
+ *
+ * The param `this` represents an XCallback-URL Object for selected route.
+ *
+ * See https://github.com/FokkeZB/UTiL/blob/master/XCallbackURL/XCallbackURL.js for more details.
+ *
+ * The arguments passed are the matches for your regex definition (if present)
+ *
+ * @param  {String} 	url 		The route
+ */
+exports.dispatch = function(url) {
+	var run = false;
+	var matches = null;
+
+	var X = Util.parseAsXCallbackURL(url);
+	Ti.API.debug(&#39;Router: dispatching &lt;&#39; + url + &#39;&gt; with path &lt;&#39; + X.path + &#39;&gt;&#39;);
+
+	for (var i in routes) {
+		var routeDefinition = routes[i];
+
+		if (_.isString(routeDefinition.key)) {
+			// Regular string equals
+			run = (routeDefinition.key === X.path);
+		} else if (_.isRegExp(routeDefinition.key)) {
+			// Regular expression complex match
+			matches = X.path.match(routeDefinition.key);
+			run = !!(matches);
+			if (matches) matches.shift();
+		} else if (_.isFunction(routeDefinition.key)) {
+			// Function match
+			matches = routeDefinition.key(X.path);
+			run = (matches !== undefined);
+		}
+
+		if (run === true) {
+			Ti.API.debug(&#39;Router: Matched with key &lt;&#39; + routeDefinition.key + &#39;&gt; and matches &lt;&#39; + JSON.stringify(matches) + &#39;&gt;&#39;);
+
+			routeDefinition.callback.apply(X, matches);
+			return; // break the f***g cycle
+		}
+	}
+
+	Ti.API.warn(&#39;Router: no matches for the selected route&#39;, url);
+};
+
+<span id='Router-method-go'>/**
+</span> * @method go
+ * @inheritDoc #dispatch
+ * Alias for {@link #dispatch}
+ */
+exports.go = exports.dispatch;
+
+
+<span id='Router-method-autoMapModel'>/**
+</span> * @method autoMapModel
+ * Create the routes for a model
+ * @param  {String} single The name for the model
+ * @param  {String} [plural] The name for the model, plural.
+ */
+exports.autoMapModel = function(single, plural) {
+	plural = plural || single+&#39;s&#39;;
+
+	exports.on(&#39;/&#39; + plural, function() {
+		require(&#39;T/flow&#39;).open(plural);
+	});
+
+	exports.on(new RegExp(&#39;/&#39; + plural + &#39;/([0-9]+)&#39;), function(id) {
+		require(&#39;T/flow&#39;).open(single, {
+			id: id
+		});
+	});
+};
+</pre>
+</body>
+</html>
